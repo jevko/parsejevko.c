@@ -5,8 +5,6 @@
 #include <stdbool.h>
 #include "lib.h"
 
-#define runtime_error(x) printf("%s\n", x); exit(1);
-
 typedef struct Jevko Jevko;
 typedef struct Subjevko Subjevko;
 
@@ -115,15 +113,10 @@ inline Jevko* parseJevko(String* str) {
         isEscaped = false;
       } else {
         String* str = String_make();
-        String_append_ccstr(str, "Invalid digraph (");
-        String_append_c(str, escaper);
-        String_append_c(str, chr);
-        String_append_ccstr(str, ") at ");
-        String_append_i(str, line);
-        String_append_ccstr(str, ":");
-        String_append_i(str, column);
-        String_append_ccstr(str, "!");
-        runtime_error(String_cstr(str));
+        printf(
+          "Invalid digraph (%c%c) at %d:%d!\n", escaper, chr, line, column
+        );
+        exit(1);
       }
     } else if (chr == escaper) {
       isEscaped = true;
@@ -138,15 +131,8 @@ inline Jevko* parseJevko(String* str) {
       String_append_d(parent->suffix, text);
       text = String_make();
       if (Stack_size(ancestors) < 1) {
-        String* str = String_make();
-        String_append_ccstr(str, "Unexpected closer (");
-        String_append_c(str, closer);
-        String_append_ccstr(str, ") at ");
-        String_append_i(str, line);
-        String_append_ccstr(str, ":");
-        String_append_i(str, column);
-        String_append_ccstr(str, "!");
-        runtime_error(String_cstr(str));
+        printf("Unexpected closer (%c) at %d:%d!\n", closer, line, column);
+        exit(1);
       }
       parent = (Jevko*)Stack_peek(ancestors);
       Stack_pop(ancestors);
@@ -162,20 +148,16 @@ inline Jevko* parseJevko(String* str) {
     }
   }
   if (isEscaped) {
-    String* str = String_make();
-    String_append_ccstr(str, "Unexpected end after escaper (");
-    String_append_c(str, escaper);
-    String_append_ccstr(str, ")!");
-    runtime_error(String_cstr(str));
+    printf("Unexpected end after escaper (%c)!\n", escaper);
+    exit(1);
   }
   if (Stack_size(ancestors) > 0) {
-    String* str = String_make();
-    String_append_ccstr(str, "Unexpected end: missing ");
-    String_append_i(str, Stack_size(ancestors));
-    String_append_ccstr(str, " closer(s) (");
-    String_append_c(str, closer);
-    String_append_ccstr(str, ")!");
-    runtime_error(String_cstr(str));
+    printf(
+      "Unexpected end: missing %d closer(s) (%c)!\n", 
+      Stack_size(ancestors), 
+      closer
+    );
+    exit(1);
   }
   String_append_d(parent->suffix, text);
   Stack_free(&ancestors);
