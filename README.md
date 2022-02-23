@@ -1,4 +1,4 @@
-# parseJevko.c
+# parsejevko.c
 
 Simple parser for Jevko in C.
 
