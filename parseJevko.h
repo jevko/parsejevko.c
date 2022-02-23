@@ -1,3 +1,6 @@
+#ifndef PARSEJEVKO_H
+#define PARSEJEVKO_H
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "lib.h"
@@ -178,3 +181,5 @@ inline Jevko* parseJevko(String* str) {
   Stack_free(&ancestors);
   return parent;
 }
+
+#endif

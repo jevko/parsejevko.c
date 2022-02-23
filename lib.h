@@ -1,3 +1,6 @@
+#ifndef PARSEJEVKO_LIB_H
+#define PARSEJEVKO_LIB_H
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -189,7 +192,7 @@ inline void String_append_c(String* string, char c) {
   }
   string->str[length] = c;
   string->length = length + 1;
-  string->str[length] = 0;
+  string->str[length + 1] = 0;
 }
 inline void String_append(String* string, String* s) {
   String_append_cstr(string, String_cstr(s));
@@ -209,8 +212,8 @@ inline void String_append_ccstr(String* string, const char* s) {
   }
 }
 inline void String_append_i(String* string, int s) {
-  char buf[255];
-  snprintf(buf, 255, "%d", s);
+  char buf[256];
+  snprintf(buf, 256, "%d", s);
   String_append_cstr(string, buf);
 }
 extern inline char* String_to_cstr(String* string) {
@@ -221,3 +224,5 @@ extern inline char* String_to_cstr(String* string) {
 inline char* String_cstr(String* string) {
   return string->str;
 }
+
+#endif
