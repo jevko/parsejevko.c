@@ -112,7 +112,6 @@ inline Jevko* parseJevko(String* str) {
         String_append_c(text, chr);
         isEscaped = false;
       } else {
-        String* str = String_make();
         printf(
           "Invalid digraph (%c%c) at %d:%d!\n", escaper, chr, line, column
         );
