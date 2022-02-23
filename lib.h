@@ -189,6 +189,7 @@ inline void String_append_c(String* string, char c) {
   }
   string->str[length] = c;
   string->length = length + 1;
+  string->str[length] = 0;
 }
 inline void String_append(String* string, String* s) {
   String_append_cstr(string, String_cstr(s));
