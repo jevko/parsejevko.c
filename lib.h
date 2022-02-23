@@ -13,155 +13,72 @@ extern inline void freeptr(void** ptr) {
   ptr = NULL;
 }
 
-typedef struct Node Node;
-struct Node {
-  Node* next;
-  void* value;
-};
-Node* Node_make(void* value);
-void Node_free(Node** nodeptr, void (*value_free)(void**));
-void Node_bind(Node* node, Node* next);
-Bool Node_isValid(Node* node);
-void* Node_value(Node* node);
-Node* Node_next(Node* node);
+typedef struct {
+  unsigned int capacity;
+  unsigned int length;
+  void** data;
+} Vector;
+Vector* Vector_make();
+void Vector_push(Vector* vector, void* value);
+void* Vector_pop(Vector* vector);
+void** Vector_data(Vector* vector);
+unsigned int Vector_length(Vector* vector);
+void Vector_free(Vector** vectorptr, void (*value_free)(void**));
 
 typedef struct {
-  Node* head;
-} Stack;
-Stack* Stack_make();
-void Stack_free(Stack** stackptr);
-void Stack_push(Stack* stack, void* value);
-void* Stack_pop(Stack* stack);
-Bool Stack_empty(Stack* stack);
-
-typedef struct {
-  Node* head;
-  Node* tail;
-} List;
-List* List_make();
-void List_free(List** listptr, void (*value_free)(void**));
-void List_add(List* list, void* value);
-Node* List_head(List* list);
-
-typedef struct {
+  unsigned int capacity;
+  unsigned int length;
   char* str;
-  int capacity;
-  int length;
 } String;
 String* String_make();
+String* String_from_cstr(char* cstr);
 void String_free(String** stringptr);
 String* String_make_c(char c);
 void String_append(String* string, String* s);
-void String_append_d(String* string, String* s);
-void String_append_c(String* string, char c);
 void String_append_cstr(String* string, char* s);
 void String_append_ccstr(String* string, const char* s);
-void String_append_i(String* string, int s);
+void String_append_d(String* string, String* s);
+void String_append_c(String* string, char c);
 char* String_cstr(String* string);
+unsigned int String_length(String* string);
 
-inline Node* Node_make(void* value) {
-  Node* node = (Node*)malloc(sizeof *node);
-  node->value = value;
-  node->next = NULL;
-  return node;
+inline Vector* Vector_make() {
+  Vector* vector = (Vector*)malloc(sizeof *vector);
+  unsigned int capacity = 64;
+  vector->capacity = capacity;
+  vector->length = 0;
+  vector->data = (void**)malloc(capacity * sizeof(void*));
+  return vector;
 }
-inline void Node_free(Node** nodeptr, void (*value_free)(void**)) {
-  Node* node = *nodeptr;
-  value_free(&node->value);
-  free(node);
-  nodeptr = NULL;
-}
-inline void Node_bind(Node* node, Node* next) {
-  node->next = next;
-}
-inline Bool Node_isValid(Node* node) {
-  return node != NULL;
-}
-inline void* Node_value(Node* node) {
-  return node->value;
-}
-inline Node* Node_next(Node* node) {
-  return node->next;
-}
-
-inline List* List_make() {
-  List* list = (List*)malloc(sizeof *list);
-  list->head = NULL;
-  list->tail = NULL;
-  return list;
-}
-inline void List_free(List** listptr, void (*value_free)(void**)) {
-  List* list = *listptr;
-  Node* node = list->head;
-  while (Node_isValid(node)) {
-    Node* next = Node_next(node);
-    Node_free(&node, value_free);
-    node = next;
+inline void Vector_push(Vector* vector, void* value) {
+  int length = vector->length;
+  if (length >= vector->capacity) {
+    int capacity = vector->capacity * 2;
+    vector->data = (void**)realloc(vector->data, capacity);
+    vector->capacity = capacity;
   }
-  free(list);
-  listptr = NULL;
+  vector->data[length] = value;
+  vector->length = length + 1;
 }
-inline void List_add(List* list, void* value) {
-  Node* node = Node_make(value);
-  if (list->tail == NULL || list->head == NULL) {
-    list->head = node;
-    list->tail = node;
-  } else {
-    Node_bind(list->tail, node);
-    list->tail = node;
+inline void* Vector_pop(Vector* vector) {
+  vector->length -= 1;
+  return vector->data[vector->length];
+}
+inline void** Vector_data(Vector* vector) {
+  return vector->data;
+}
+inline unsigned int Vector_length(Vector* vector) {
+  return vector->length;
+}
+inline void Vector_free(Vector** vectorptr, void (*value_free)(void**)) {
+  Vector* vector = *vectorptr;
+  void** data = vector->data;
+  for (unsigned int i = 0; i < vector->length; ++i) {
+    value_free(&data[i]);
   }
-}
-inline Node* List_head(List* list) {
-  return list->head;
-}
-
-inline Stack* Stack_make() {
-  Stack* stack = (Stack*)malloc(sizeof *stack);
-  stack->head = NULL;
-  return stack;
-}
-inline void Stack_free(Stack** stackptr) {
-  Stack* stack = *stackptr;
-  Node* node = stack->head;
-  if (Node_isValid(node)) {
-    Node* next = Node_next(node);
-    Node_free(&node, &freeptr);
-    node = next;
-  }
-  free(stack);
-  stackptr = NULL;
-}
-inline void Stack_push(Stack* stack, void* value) {
-  Node* node = Node_make(value);
-  if (stack->head == NULL) {
-    stack->head = node;
-  } else {
-    Node_bind(node, stack->head);
-    stack->head = node;
-  }
-}
-inline void* Stack_pop(Stack* stack) {
-  Node* node = stack->head;
-  stack->head = node->next;
-  void* value = node->value;
-  free(node);
-  return value;
-}
-extern inline void* Stack_peek(Stack* stack) {
-  Node* node = stack->head;
-  return node->value;
-}
-int Stack_size(Stack* stack);
-inline int Stack_size(Stack* stack) {
-  Node* node = stack->head;
-  int i = 0;
-  for (; Node_isValid(node); ++i) {
-    node = Node_next(node);
-  }
-  return i;
-}
-inline Bool Stack_empty(Stack* stack) {
-  return stack->head == NULL;
+  free(data);
+  free(vector);
+  vectorptr = NULL;
 }
 
 inline String* String_make() {
@@ -170,6 +87,11 @@ inline String* String_make() {
   ret->str = (char*)calloc(capacity, sizeof(char));
   ret->capacity = capacity;
   ret->length = 0;
+  return ret;
+}
+inline String* String_from_cstr(char* cstr) {
+  String* ret = String_make();
+  String_append_cstr(ret, cstr);
   return ret;
 }
 inline void String_free(String** stringptr) {
@@ -197,10 +119,6 @@ inline void String_append_c(String* string, char c) {
 inline void String_append(String* string, String* s) {
   String_append_cstr(string, String_cstr(s));
 }
-inline void String_append_d(String* string, String* s) {
-  String_append(string, s);
-  String_free(&s);
-}
 inline void String_append_cstr(String* string, char* s) {
   for (int i = 0; i < strlen(s); ++i) {
     String_append_c(string, s[i]);
@@ -211,10 +129,9 @@ inline void String_append_ccstr(String* string, const char* s) {
     String_append_c(string, s[i]);
   }
 }
-inline void String_append_i(String* string, int s) {
-  char buf[256];
-  snprintf(buf, 256, "%d", s);
-  String_append_cstr(string, buf);
+inline void String_append_d(String* string, String* s) {
+  String_append(string, s);
+  String_free(&s);
 }
 extern inline char* String_to_cstr(String* string) {
   char* ret = (char*)calloc(string->length + 1, sizeof(char));
@@ -223,6 +140,9 @@ extern inline char* String_to_cstr(String* string) {
 }
 inline char* String_cstr(String* string) {
   return string->str;
+}
+inline unsigned int String_length(String* string) {
+  return string->length;
 }
 
 #endif

@@ -1,0 +1,1 @@
+gcc -g Example.c && valgrind --leak-check=yes -s ./a.out 

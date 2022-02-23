@@ -9,7 +9,7 @@ typedef struct Jevko Jevko;
 typedef struct Subjevko Subjevko;
 
 struct Jevko {
-  List* subjevkos;
+  Vector* subjevkos;
   String* suffix;
 };
 
@@ -25,7 +25,7 @@ const char escaper = '`';
 Jevko* new_Jevko();
 inline Jevko* new_Jevko() {
   Jevko* jevko = (Jevko*)malloc(sizeof *jevko);
-  jevko->subjevkos = List_make();
+  jevko->subjevkos = Vector_make();
   jevko->suffix = String_make();
   return jevko;
 }
@@ -43,7 +43,7 @@ void delete_Jevko(Jevko** jevko);
 
 inline void delete_Jevko(Jevko** jevkoptr) {
   Jevko* jevko = *jevkoptr;
-  List_free(&jevko->subjevkos, (void (*)(void**))&delete_Subjevko);
+  Vector_free(&jevko->subjevkos, (void (*)(void**))&delete_Subjevko);
   String_free(&jevko->suffix);
   free(jevko);
   jevkoptr = NULL;
@@ -57,13 +57,13 @@ inline void delete_Subjevko(Subjevko** subjevkoptr) {
   subjevkoptr = NULL;
 }
 
-String* jevkoToString(Jevko* jevko);
+String* Jevko_toString(Jevko* jevko);
 
 String* escape(String* str);
 inline String* escape(String* str) {
   String* ret = String_make();
-  for (int i = 0; i < str->length; ++i) {
-    char c = str->str[i];
+  for (int i = 0; i < String_length(str); ++i) {
+    char c = String_cstr(str)[i];
     if (c == opener || c == closer || c == escaper) {
       String_append_c(ret, escaper);
     }
@@ -72,23 +72,22 @@ inline String* escape(String* str) {
   return ret;
 }
 
-String* subjevkoToString(Subjevko* subjevko);
-inline String* subjevkoToString(Subjevko* subjevko) {
+String* Subjevko_toString(Subjevko* subjevko);
+inline String* Subjevko_toString(Subjevko* subjevko) {
   String* ret = String_make();
   String_append_d(ret, escape(subjevko->prefix));
   String_append_c(ret, opener);
-  String_append_d(ret, jevkoToString(subjevko->jevko));
+  String_append_d(ret, Jevko_toString(subjevko->jevko));
   String_append_c(ret, closer);
   return ret;
 }
 
-inline String* jevkoToString(Jevko* jevko) {
+inline String* Jevko_toString(Jevko* jevko) {
   String* ret = String_make();
-  List* subjevkos = jevko->subjevkos;
-  Node* node = List_head(subjevkos);
-  while (Node_isValid(node)) {
-    String_append_d(ret, subjevkoToString((Subjevko*)node->value));
-    node = Node_next(node);
+  Vector* subjevkos = jevko->subjevkos;
+  Subjevko** data = (Subjevko**)Vector_data(subjevkos);
+  for (int i = 0; i < Vector_length(subjevkos); ++i) {
+    String_append_d(ret, Subjevko_toString(data[i]));
   }
   String_append_d(ret, escape(jevko->suffix));
   return ret;
@@ -96,7 +95,7 @@ inline String* jevkoToString(Jevko* jevko) {
 
 Jevko* parseJevko(String* str);
 inline Jevko* parseJevko(String* str) {
-  Stack* ancestors = Stack_make();
+  Vector* ancestors = Vector_make();
 
   Jevko* parent = new_Jevko();
   String* text = String_make();
@@ -105,8 +104,8 @@ inline Jevko* parseJevko(String* str) {
   unsigned int line = 1;
   unsigned int column = 1;
 
-  for (int i = 0; i < str->length; ++i) {
-    char chr = str->str[i];
+  for (int i = 0; i < String_length(str); ++i) {
+    char chr = String_cstr(str)[i];
     if (isEscaped) {
       if (chr == escaper || chr == opener || chr == closer) {
         String_append_c(text, chr);
@@ -122,19 +121,18 @@ inline Jevko* parseJevko(String* str) {
     } else if (chr == opener) {
       Jevko* jevko = new_Jevko();
       Subjevko* sub = new_Subjevko(text, jevko);
-      List_add(parent->subjevkos, sub);
-      Stack_push(ancestors, parent);
+      Vector_push(parent->subjevkos, sub);
+      Vector_push(ancestors, parent);
       parent = jevko;
       text = String_make();
     } else if (chr == closer) {
       String_append_d(parent->suffix, text);
       text = String_make();
-      if (Stack_size(ancestors) < 1) {
+      if (Vector_length(ancestors) < 1) {
         printf("Unexpected closer (%c) at %d:%d!\n", closer, line, column);
         exit(1);
       }
-      parent = (Jevko*)Stack_peek(ancestors);
-      Stack_pop(ancestors);
+      parent = (Jevko*)Vector_pop(ancestors);
     } else {
       String_append_c(text, chr);
     }
@@ -150,16 +148,16 @@ inline Jevko* parseJevko(String* str) {
     printf("Unexpected end after escaper (%c)!\n", escaper);
     exit(1);
   }
-  if (Stack_size(ancestors) > 0) {
+  if (Vector_length(ancestors) > 0) {
     printf(
       "Unexpected end: missing %d closer(s) (%c)!\n", 
-      Stack_size(ancestors), 
+      Vector_length(ancestors), 
       closer
     );
     exit(1);
   }
   String_append_d(parent->suffix, text);
-  Stack_free(&ancestors);
+  Vector_free(&ancestors, (void (*)(void**))&delete_Jevko);
   return parent;
 }
 

@@ -1,17 +1,20 @@
 #include <stdio.h>
+#include <assert.h>
 
 #include "parseJevko.h"
 
 int main() {
-  String* str = String_make();
-  String_append_ccstr(str, "a`[`]`` [b [x [y]] z] c [d] e");
-  Jevko* jevko = parseJevko(str);
-  String* outstr = jevkoToString(jevko);
-  printf("%s", String_cstr(outstr)) ;
-  delete_Jevko(&jevko);
+  String* instr = String_from_cstr("a`[`]`` [b [x [y]] z] c [d] eaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  Jevko* jevko = parseJevko(instr);
+  String* outstr = Jevko_toString(jevko);
 
+  assert(strcmp(String_cstr(instr), String_cstr(outstr)) == 0);
+
+  printf("%s\n", String_cstr(outstr));
+
+  delete_Jevko(&jevko);
+  String_free(&instr);
   String_free(&outstr);
-  String_free(&str);
 
   return 0;
 }
