@@ -4,7 +4,7 @@
 
 int main() {
   String* str = String_make();
-  String_append_ccstr(str, "a`[`]`` [b [x [y]] z] c [d] `e");
+  String_append_ccstr(str, "a`[`]`` [b [x [y]] z] c [d] e");
   Jevko* jevko = parseJevko(str);
   String* outstr = jevkoToString(jevko);
   printf("%s", String_cstr(outstr)) ;

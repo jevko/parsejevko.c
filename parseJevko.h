@@ -120,7 +120,7 @@ inline Jevko* parseJevko(String* str) {
         String_append_ccstr(str, ":");
         String_append_i(str, column);
         String_append_ccstr(str, "!");
-        runtime_error(String_cstr(str));
+        runtime_error(String_to_cstr(str));
       }
     } else if (chr == escaper) {
       isEscaped = true;
@@ -143,7 +143,7 @@ inline Jevko* parseJevko(String* str) {
         String_append_ccstr(str, ":");
         String_append_i(str, column);
         String_append_ccstr(str, "!");
-        runtime_error(String_cstr(str));
+        runtime_error(String_to_cstr(str));
       }
       parent = (Jevko*)Stack_peek(ancestors);
       Stack_pop(ancestors);
@@ -163,7 +163,7 @@ inline Jevko* parseJevko(String* str) {
     String_append_ccstr(str, "Unexpected end after escaper (");
     String_append_c(str, escaper);
     String_append_ccstr(str, ")!");
-    runtime_error(String_cstr(str));
+    runtime_error(String_to_cstr(str));
   }
   if (Stack_size(ancestors) > 0) {
     String* str = String_make();
@@ -172,7 +172,7 @@ inline Jevko* parseJevko(String* str) {
     String_append_ccstr(str, " closer(s) (");
     String_append_c(str, closer);
     String_append_ccstr(str, ")!");
-    runtime_error(String_cstr(str));
+    runtime_error(String_to_cstr(str));
   }
   String_append_d(parent->suffix, text);
   Stack_free(&ancestors);
