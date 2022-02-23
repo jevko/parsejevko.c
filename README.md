@@ -1,3 +1,5 @@
+NOTE: this is a sketch
+
 # parsejevko.c
 
 Simple parser for Jevko in C.
