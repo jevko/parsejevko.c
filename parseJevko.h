@@ -161,4 +161,107 @@ inline Jevko* parseJevko(String* str) {
   return parent;
 }
 
+#include <stdarg.h>
+typedef struct {
+  const char* tag;
+  Vector* vector;
+} Vectorx;
+Vectorx* J(char* str, ...);
+inline Vectorx* J(char* str, ...) {
+  va_list args;
+  va_start(args, str);
+
+  Vector* vector = Vector_make();
+
+  void* current = str;
+
+  while (current != NULL) {
+    Vector_push(vector, current);
+    current = va_arg(args, void*);
+  }
+  va_end(args);
+  Vectorx* vx = (Vectorx*)malloc(sizeof *vx);
+  vx->tag = "vx";
+  vx->vector = vector;
+  return vx;
+}
+
+#define J(...) (1, __VA_ARGS__, -1)
+
+Jevko* vToJevko(int one, ...) {
+  va_list args;
+  va_start(args, one);
+
+  if (one != 1) {
+    printf("oops: todo");
+    exit(1);
+  }
+  int level = one;
+
+  Vector* ancestors = Vector_make();
+  Jevko* ret = new_Jevko();
+  Vector* subjevkos = Vector_make();
+  Subjevko* subjevko = new_Subjevko(String_make(), new_Jevko());
+
+  void* arg;
+  while (level > 0) {
+    arg = va_arg(args, void*);
+
+    if ((long)arg == 1) {
+      level += 1;
+
+      subjevko->jevko = argsToJevko((Vectorx*)vi);
+      Vector_push(subjevkos, subjevko);
+      subjevko = new_Subjevko(String_make(), new_Jevko());
+    } else if ((long)arg == -1) level -= 1;
+    else {
+      String_append_cstr(subjevko->prefix, (char*)arg);
+    }
+  }
+
+  Vector* vector = Vector_make();
+
+  void* current = str;
+
+  while (current != NULL) {
+    Vector_push(vector, current);
+    current = va_arg(args, void*);
+  }
+  va_end(args);
+  Vectorx* vx = (Vectorx*)malloc(sizeof *vx);
+  vx->tag = "vx";
+  vx->vector = vector;
+  return vx;
+}
+
+Jevko* argsToJevko(Vectorx* vx);
+inline Jevko* argsToJevko(Vectorx* vx) {
+  Vector* v = vx->vector;
+
+  Vector* subjevkos = Vector_make();
+  Subjevko* subjevko = new_Subjevko(String_make(), new_Jevko()); // {'prefix': ''}
+
+  void** data = v->data;
+  for (int i = 0; i < Vector_length(v); ++i) {
+    void* vi = data[i];
+    printf("%d", strcmp((const char*)vi, "vx"));
+    if (strcmp((const char*)vi, "vx") == 0) {
+      subjevko->jevko = argsToJevko((Vectorx*)vi);
+      Vector_push(subjevkos, subjevko);
+      subjevko = new_Subjevko(String_make(), new_Jevko());
+    } else {
+      // note: assume cstr
+      String_append_cstr(subjevko->prefix, (char*)vi);
+    }
+    // if (isinstance(arg, str)):
+    //   subjevko['prefix'] += arg
+    // else:
+    //   raise Exception(f"Argument #{i} has unrecognized type ({type(arg)})! Only strings and arrays are allowed. The argument's value is: {arg}")
+  }
+  Jevko* jevko = new_Jevko();
+  jevko->subjevkos = subjevkos;
+  jevko->suffix = subjevko->prefix;
+  return jevko; // {'subjevkos': subjevkos, 'suffix': subjevko['prefix']}
+}
+
 #endif
