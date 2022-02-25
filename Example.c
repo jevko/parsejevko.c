@@ -12,6 +12,12 @@ int main() {
 
   printf("%s\n", String_cstr(outstr));
 
+  Jevko* j = argsToJevko("a ", J("b ", J("s")), "c", " ", J("d"), J());
+  String* str = Jevko_toString(j);
+  printf("%s\n", String_cstr(str));
+  delete_Jevko(&j);
+  String_free(&str);
+
   delete_Jevko(&jevko);
   String_free(&instr);
   String_free(&outstr);

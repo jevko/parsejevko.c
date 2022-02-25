@@ -161,4 +161,69 @@ inline Jevko* parseJevko(String* str) {
   return parent;
 }
 
+#include <stdarg.h>
+
+#define J(...) 1l __VA_OPT__(,) __VA_ARGS__, -1l
+#define argsToJevko(...) argsToJevko_(J(__VA_ARGS__))
+
+Jevko* argsToJevko_(int one, ...);
+inline Jevko* argsToJevko_(int one, ...) {
+  va_list args;
+  va_start(args, one);
+
+  if (one != 1l) {
+    printf("oops: todo %d", one);
+    exit(1);
+  }
+  long level = one;
+
+  Vector* ancestors = Vector_make();
+
+  Jevko* parent = new_Jevko();
+  String* text = String_make();
+  bool isEscaped = false;
+
+  void* arg;
+  // note: might cause a segfault if unbalanced
+  while (true) {
+    arg = va_arg(args, void*);
+
+    if ((long)arg == 1l) {
+      level += 1;
+      Jevko* jevko = new_Jevko();
+      Subjevko* sub = new_Subjevko(text, jevko);
+      Vector_push(parent->subjevkos, sub);
+      Vector_push(ancestors, parent);
+      parent = jevko;
+      text = String_make();
+    } else if ((long)arg == -1l) {
+      level -= 1;
+      if (level == 0) break;
+      String_append_d(parent->suffix, text);
+      text = String_make();
+      if (Vector_length(ancestors) < 1) {
+        printf("Unexpected closer (%c)!\n", closer);
+        exit(1);
+      }
+      parent = (Jevko*)Vector_pop(ancestors);
+    } else if ((long)arg == 0) {
+      // nothing
+    } else {
+      // printf("LEVEL %ld, %ld, %s", level, (long)arg, (char*)arg);
+      String_append_cstr(text, (char*)arg);
+    }
+  }
+  if (Vector_length(ancestors) > 0) {
+    printf(
+      "Unexpected end: missing %d closer(s) (%c)!\n", 
+      Vector_length(ancestors), 
+      closer
+    );
+    exit(1);
+  }
+  String_append_d(parent->suffix, text);
+  Vector_free(&ancestors, (void (*)(void**))&delete_Jevko);
+  return parent;
+}
+
 #endif
