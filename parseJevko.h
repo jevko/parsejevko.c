@@ -162,106 +162,67 @@ inline Jevko* parseJevko(String* str) {
 }
 
 #include <stdarg.h>
-typedef struct {
-  const char* tag;
-  Vector* vector;
-} Vectorx;
-Vectorx* J(char* str, ...);
-inline Vectorx* J(char* str, ...) {
-  va_list args;
-  va_start(args, str);
 
-  Vector* vector = Vector_make();
+#define J(...) 1l, __VA_ARGS__, -1l
 
-  void* current = str;
-
-  while (current != NULL) {
-    Vector_push(vector, current);
-    current = va_arg(args, void*);
-  }
-  va_end(args);
-  Vectorx* vx = (Vectorx*)malloc(sizeof *vx);
-  vx->tag = "vx";
-  vx->vector = vector;
-  return vx;
-}
-
-#define J(...) (1, __VA_ARGS__, -1)
-
-Jevko* vToJevko(int one, ...) {
+Jevko* argsToJevko(int one, ...);
+inline Jevko* argsToJevko(int one, ...) {
   va_list args;
   va_start(args, one);
 
-  if (one != 1) {
-    printf("oops: todo");
+  if (one != 1l) {
+    printf("oops: todo %d", one);
     exit(1);
   }
-  int level = one;
+  long level = one;
 
   Vector* ancestors = Vector_make();
-  Jevko* ret = new_Jevko();
-  Vector* subjevkos = Vector_make();
-  Subjevko* subjevko = new_Subjevko(String_make(), new_Jevko());
+
+  Jevko* parent = new_Jevko();
+  String* text = String_make();
+  bool isEscaped = false;
 
   void* arg;
-  while (level > 0) {
+  // note: might cause a segfault if unbalanced
+  while (true) {
     arg = va_arg(args, void*);
 
-    if ((long)arg == 1) {
+    if ((long)arg == 1l) {
       level += 1;
-
-      subjevko->jevko = argsToJevko((Vectorx*)vi);
-      Vector_push(subjevkos, subjevko);
-      subjevko = new_Subjevko(String_make(), new_Jevko());
-    } else if ((long)arg == -1) level -= 1;
-    else {
-      String_append_cstr(subjevko->prefix, (char*)arg);
-    }
-  }
-
-  Vector* vector = Vector_make();
-
-  void* current = str;
-
-  while (current != NULL) {
-    Vector_push(vector, current);
-    current = va_arg(args, void*);
-  }
-  va_end(args);
-  Vectorx* vx = (Vectorx*)malloc(sizeof *vx);
-  vx->tag = "vx";
-  vx->vector = vector;
-  return vx;
-}
-
-Jevko* argsToJevko(Vectorx* vx);
-inline Jevko* argsToJevko(Vectorx* vx) {
-  Vector* v = vx->vector;
-
-  Vector* subjevkos = Vector_make();
-  Subjevko* subjevko = new_Subjevko(String_make(), new_Jevko()); // {'prefix': ''}
-
-  void** data = v->data;
-  for (int i = 0; i < Vector_length(v); ++i) {
-    void* vi = data[i];
-    printf("%d", strcmp((const char*)vi, "vx"));
-    if (strcmp((const char*)vi, "vx") == 0) {
-      subjevko->jevko = argsToJevko((Vectorx*)vi);
-      Vector_push(subjevkos, subjevko);
-      subjevko = new_Subjevko(String_make(), new_Jevko());
+      Jevko* jevko = new_Jevko();
+      Subjevko* sub = new_Subjevko(text, jevko);
+      Vector_push(parent->subjevkos, sub);
+      Vector_push(ancestors, parent);
+      parent = jevko;
+      text = String_make();
+    } else if ((long)arg == -1l) {
+      level -= 1;
+      if (level == 0) break;
+      String_append_d(parent->suffix, text);
+      text = String_make();
+      if (Vector_length(ancestors) < 1) {
+        printf("Unexpected closer (%c)!\n", closer);
+        exit(1);
+      }
+      parent = (Jevko*)Vector_pop(ancestors);
+    } else if ((long)arg == 0) {
+      // nothing
     } else {
-      // note: assume cstr
-      String_append_cstr(subjevko->prefix, (char*)vi);
+      // printf("LEVEL %ld, %ld, %s", level, (long)arg, (char*)arg);
+      String_append_cstr(text, (char*)arg);
     }
-    // if (isinstance(arg, str)):
-    //   subjevko['prefix'] += arg
-    // else:
-    //   raise Exception(f"Argument #{i} has unrecognized type ({type(arg)})! Only strings and arrays are allowed. The argument's value is: {arg}")
   }
-  Jevko* jevko = new_Jevko();
-  jevko->subjevkos = subjevkos;
-  jevko->suffix = subjevko->prefix;
-  return jevko; // {'subjevkos': subjevkos, 'suffix': subjevko['prefix']}
+  if (Vector_length(ancestors) > 0) {
+    printf(
+      "Unexpected end: missing %d closer(s) (%c)!\n", 
+      Vector_length(ancestors), 
+      closer
+    );
+    exit(1);
+  }
+  String_append_d(parent->suffix, text);
+  Vector_free(&ancestors, (void (*)(void**))&delete_Jevko);
+  return parent;
 }
 
 #endif
