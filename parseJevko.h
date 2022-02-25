@@ -163,10 +163,11 @@ inline Jevko* parseJevko(String* str) {
 
 #include <stdarg.h>
 
-#define J(...) 1l, __VA_ARGS__, -1l
+#define J(...) 1l __VA_OPT__(,) __VA_ARGS__, -1l
+#define argsToJevko(...) argsToJevko_(J(__VA_ARGS__))
 
-Jevko* argsToJevko(int one, ...);
-inline Jevko* argsToJevko(int one, ...) {
+Jevko* argsToJevko_(int one, ...);
+inline Jevko* argsToJevko_(int one, ...) {
   va_list args;
   va_start(args, one);
 
